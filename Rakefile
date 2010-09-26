@@ -10,8 +10,8 @@ begin
     gem.email = "kyle@kylemaxwell.com"
     gem.homepage = "http://github.com/fizx/straitjacket"
     gem.authors = ["Kyle Maxwell"]
-    gem.add_development_dependency "rspec", ">= 1.2.9"
-    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
+    gem.add_dependency "pg", ">= 0.8"
+    gem.add_development_dependency "activerecord", ">= 2.3.8"
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
@@ -42,4 +42,17 @@ Rake::RDocTask.new do |rdoc|
   rdoc.title = "straitjacket #{version}"
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
+end
+
+namespace :spec do
+  task :setup do
+    require "rubygems"
+    require "active_record"
+    require "yaml"
+    config = YAML.load(File.read("spec/database.yml"))
+    ActiveRecord::Base.establish_connection(config.merge('database' => 'postgres', 'schema_search_path' => 'public'))
+    ActiveRecord::Base.connection.create_database(config['database'], config.merge('encoding' => @encoding))
+    ActiveRecord::Base.establish_connection(config)
+    
+  end
 end

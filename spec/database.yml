@@ -1,0 +1,4 @@
+adapter: postgresql
+database: straightjacket_test
+encoding: utf8
+template: template0

@@ -1,6 +1,6 @@
 = straitjacket
 
-Description goes here.
+Constraint creation for PostgreSQL.
 
 == Note on Patches/Pull Requests
  
