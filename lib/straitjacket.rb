@@ -14,16 +14,18 @@ class Straitjacket
       self
     end
     
+    def deprecated(*names)
+      (names << @name).each do |name|
+        add_constraint DeprecatedConstraint.new(@table, name)
+      end
+    end
+    
     def check(statement, options = {})
       add_constraint CheckConstraint.new(@table, statement, named(options))
     end
 
-    def foreign_key(statement, options = {})
-      add_constraint ForeignKeyConstraint.new(@table, statement, named(options))
-    end
-
-    def column(name, statement, options = {})
-      add_constraint ColumnConstraint.new(@table, statement, named(options.merge(:column => name)))
+    def foreign_key(column, options = {})
+      add_constraint ForeignKeyConstraint.new(@table, nil, named(options).merge(:column => column))
     end
     
   private
@@ -52,6 +54,10 @@ class Straitjacket
     @names = {}
     instance_eval(&block) if block
   end
+  
+  def apply(conn)
+    constraints.map{|c| c.apply(conn) }
+  end
     
   def on(table, &block)
     proxy = Proxy.new(self, table)
@@ -60,9 +66,10 @@ class Straitjacket
   end
     
   class Constraint
-    attr_accessor :name, :table, :sql, :content
+    attr_accessor :name, :table, :sql, :content, :options, :column
     
     def initialize(table, content, options)
+      @column = options[:column]
       @name = (options[:name] || default_name(table, options[:column])).to_s
       @table = table
       @content = content
@@ -88,10 +95,32 @@ class Straitjacket
     end
   end
   
-  class ColumnConstraint < Constraint
+  class DeprecatedConstraint < Constraint
+    def initialize(table, name)
+      @table = table
+      @name = name
+    end
+    
+    def sql
+      %[ALTER TABLE "#{table}" DROP CONSTRAINT "#{name}"]
+    end
+    
+    def apply(conn)
+      conn.exec(sql)
+    rescue
+      false
+    end
   end
   
   class ForeignKeyConstraint < Constraint
+    def sql
+      more = ""
+      if options[:references]
+        on = options[:on] ? %[("#{options[:on]}")] : ""
+        more = %[REFERENCES "#{options[:references]}"#{on}]
+      end
+      %[ALTER TABLE "#{table}" ADD CONSTRAINT "#{name}" FOREIGN KEY ("#{column}") #{more} MATCH FULL]
+    end
   end
   
   class CheckConstraint < Constraint

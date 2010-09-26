@@ -1,5 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
+# Note these tests are stateful in the db.
 rebuild_sql
 describe "Straitjacket" do
   context "with a sample" do
@@ -8,13 +9,14 @@ describe "Straitjacket" do
         on :users do
           name_gt_1.check "LENGTH(name) > 1"
           dog1.foreign_key :dog_id, :references => :dogs, :on => :id
-          column :dog_id, "dog_id > 0"
+          deprecated :foo 
+          another.deprecated
         end
       end
     end
     
-    it "should have three statements" do
-      @jacket.constraints.length.should == 3
+    it "should have correct number of constraints" do
+      @jacket.constraints.length.should == 5
     end
     
     it "should have unique names" do
@@ -23,12 +25,50 @@ describe "Straitjacket" do
       }.should raise_error(Straitjacket::Error)
     end
     
-    context "first statement" do
+    describe "#apply" do
+      it "should apply all" do
+        conn = mock
+        @jacket.constraints.each do |c|
+          c.should_receive(:apply).with(conn)
+        end
+        @jacket.apply(conn)
+      end
+    end
+    
+    context "deprecated" do
+      it "should remove a key" do
+        conn = mock
+        conn.should_receive(:exec).with(%[ALTER TABLE \"users\" DROP CONSTRAINT \"another\"])
+        @jacket.constraints.last.apply(conn)
+      end
+    end
+    
+    context "foreign key" do
+      before do 
+        @key = @jacket.constraints[1]
+      end
+      
+      it "should generate sql" do
+        @key.sql.should == %[ALTER TABLE "users" ADD CONSTRAINT "dog1" FOREIGN KEY ("dog_id") REFERENCES "dogs"("id") MATCH FULL]
+      end
+        
+      it "should be able to apply sql" do
+        @key.apply($conn)
+      end
+
+      it "should be able to reapply sql" do
+        @key.apply($conn)
+      end
+
+    end
+    
+    context "check constraint" do
       before do 
         @first = @jacket.constraints.first
       end
       
       it "should be named" do
+        rebuild_sql
         @first.name.should == "name_gt_1"
       end
       
@@ -44,7 +84,7 @@ describe "Straitjacket" do
         @first.apply($conn)
       end
       
-      it "should have made stuff work" do
+      it "should be enforced" do
         User.create! :name => "Joe", :dog_id => 1
         proc {
           User.create! :name => "e", :dog_id => 1
