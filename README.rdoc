@@ -2,15 +2,21 @@
 
 Constraint creation for PostgreSQL.
 
-== Note on Patches/Pull Requests
- 
-* Fork the project.
-* Make your feature addition or bug fix.
-* Add tests for it. This is important so I don't break it in a
-  future version unintentionally.
-* Commit, do not mess with rakefile, version, or history.
-  (if you want to have your own version, that is fine but bump version in a commit by itself I can ignore when I pull)
-* Send me a pull request. Bonus points for topic branches.
+== Usage
+
+See the specs for more.
+
+    @jacket = Straitjacket.new do
+    
+      on :users do
+        name_gt_1.check "LENGTH(name) > 1"
+        dog1.foreign_key :dog_id, :references => :dogs, :on => :id
+        deprecated :foo 
+        another.deprecated
+      end
+    
+    end.apply(db_connection)
+
 
 == Copyright
 
