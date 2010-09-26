@@ -5,8 +5,8 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "straitjacket"
-    gem.summary = %Q{TODO: one-line summary of your gem}
-    gem.description = %Q{TODO: longer description of your gem}
+    gem.summary = %Q{PostgreSQL constraints in Ruby}
+    gem.description = %Q{PostgreSQL constraints in Ruby}
     gem.email = "kyle@kylemaxwell.com"
     gem.homepage = "http://github.com/fizx/straitjacket"
     gem.authors = ["Kyle Maxwell"]
